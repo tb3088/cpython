@@ -91,6 +91,7 @@ FATAL = CRITICAL
 ERROR = 40
 WARNING = 30
 WARN = WARNING
+NOTICE = 25
 INFO = 20
 DEBUG = 10
 NOTSET = 0
@@ -99,6 +100,7 @@ _levelToName = {
     CRITICAL: 'CRITICAL',
     ERROR: 'ERROR',
     WARNING: 'WARNING',
+    NOTICE: 'NOTICE',
     INFO: 'INFO',
     DEBUG: 'DEBUG',
     NOTSET: 'NOTSET',
@@ -109,6 +111,7 @@ _nameToLevel = {
     'ERROR': ERROR,
     'WARN': WARNING,
     'WARNING': WARNING,
+    'NOTICE': NOTICE,
     'INFO': INFO,
     'DEBUG': DEBUG,
     'NOTSET': NOTSET,
@@ -1329,6 +1332,18 @@ class Logger(Filterer):
         """
         if self.isEnabledFor(INFO):
             self._log(INFO, msg, args, **kwargs)
+
+    def notice(self, msg, *args, **kwargs):
+        """
+        Log 'msg % args' with severity 'NOTICE'.
+
+        To pass exception information, use the keyword argument exc_info with
+        a true value, e.g.
+
+        logger.info("Houston, we have a %s", "interesting problem", exc_info=1)
+        """
+        if self.isEnabledFor(NOTICE):
+            self._log(NOTICE, msg, args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
         """
