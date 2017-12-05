@@ -1734,7 +1734,7 @@ class LoggerAdapter(object):
         """
         if self.isEnabledFor(level):
             msg, kwargs = self.process(msg, kwargs)
-            self.logger._log(level, msg, args, **kwargs)
+            self.logger.log(level, msg, *args, **kwargs)
 
     def isEnabledFor(self, level):
         """
@@ -1778,8 +1778,12 @@ class LoggerAdapter(object):
         return self.logger.manager
 
     @manager.setter
-    def set_manager(self, value):
+    def manager(self, value):
         self.logger.manager = value
+
+    @property
+    def name(self):
+        return self.logger.name
 
     def __repr__(self):
         logger = self.logger
