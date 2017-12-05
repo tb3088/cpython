@@ -87,13 +87,15 @@ logProcesses = True
 #
 
 CRITICAL = 50
-FATAL = CRITICAL
+# fatal suggests time to die, while critical might still be continuable
+FATAL = CRITICAL + 1
 ERROR = 40
 WARNING = 30
 WARN = WARNING
 INFO = 20
 DEBUG = 10
 NOTSET = 0
+ALL = NOTSET
 
 _levelToName = {
     CRITICAL: 'CRITICAL',
@@ -112,6 +114,7 @@ _nameToLevel = {
     'INFO': INFO,
     'DEBUG': DEBUG,
     'NOTSET': NOTSET,
+    'ALL': NOTSET,
 }
 
 def getLevelName(level):
