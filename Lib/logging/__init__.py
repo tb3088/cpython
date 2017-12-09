@@ -95,6 +95,9 @@ NOTICE = 25
 INFO = 20
 DEBUG = 10
 NOTSET = 0
+INVALID = -1
+# TODO define setDefaultLevel() which tweaks value so that setLevel() failures don't just go to UNSET with no way to change
+DEFAULT = NOTSET
 
 _levelToName = {
     CRITICAL: 'CRITICAL',
@@ -117,29 +120,68 @@ _nameToLevel = {
     'NOTSET': NOTSET,
 }
 
-def getLevelName(level):
+def getLevel(levelName):
+    #compare={'case': False, 'type': False, 'map': False}
     """
-    Return the textual representation of logging level 'level'.
+    Return the value of dictionary corresponding to logging 'level'.
 
-    If the level is one of the predefined levels (CRITICAL, ERROR, WARNING,
-    NOTICE, INFO, DEBUG) then you get the corresponding string. If you have
-    associated levels with names using addLevelName then the name you have
-    associated with 'level' is returned.
+    If the key is recognized (eg. 'CRITICAL', 'ERROR', etc. or defined via
+    addLevelName()) then emit the corresponding value. Any unrecognized 
+    input is returned as negative 1 which differentiates it from NOTSET. 
 
-    If a numeric value corresponding to one of the defined levels is passed
-    in, the corresponding string representation is returned.
+    NOTE: Does not check data types.
+    """
+    #TODO tolerate wrong case/type that would cause get() misses
+    # result = _levelToName.get(levelName)
+    # if result is not None:
+        # return levelName
 
-    Otherwise, the string representation of 'level' is returned.
+    return _nameToLevel.get(levelName, NOTSET - 1)
+
+def getLevelName(level, format='%s'):
+    legacy = True
+    #compare={'case': False, 'type': False, 'map': False}
+    # really should call _checkLevel with various soft failure modes
+    """
+    Return a textual representation of logging 'level'.
+
+    If the key is recognized (eg. CRITICAL, ERROR, etc. or defined via
+    addLevelName()) then emit the corresponding value. Any unrecognized 
+    input is returned *as-is* but in String form.
+
+    NOTE: Do NOT use to validate inputs. Result may not be a simple string.
+
+    WARNING! The legacy behavior of reversing polarity of the lookup 
+    (eg. flipping TEXT into INT) is still tolerated but remains a major 
+    blunder in the API that #22386 tried to fix but was improperly reverted
+    instead of fixing affected branches which contorted its purpose.
     """
     # See Issues #22386, #27937 and #29220 for why it's this way
-    result = _levelToName.get(level)
-    if result is not None:
-        return result
+    #TODO tolerate wrong case/type that would cause get() misses
+    try:
+        result = _levelToName.get(level)
+        if result is not None:
+            # since nothing enforces value data type, tempt TypeError
+            return format % result
 
-    result = _nameToLevel.get(level.upper())
-    if result is not None:
-        return result
-    return "%s" % level
+        if legacy:
+            result = _nameToLevel.get(level)
+            if result is not None:
+                # WARNING no type checking
+                return result
+    # except TypeError:
+        # pass
+    finally:    
+        return str(level)   #TODO apply upper() as is common convention?
+
+        # # retval = _checkLevel(level, flags, fix=T/F)
+        # # if isinstance(retval, bool) then handle pass/fail, else update level with fixed value
+
+    # except TypeError:
+        # if raiseExceptions:
+            # raise("parameter 'level' must reduce to an Integer")
+    # except ValueError:
+        # pass
 
 def addLevelName(level, levelName):
     """
@@ -187,33 +229,94 @@ _srcfile = os.path.normcase(addLevelName.__code__.co_filename)
 #if not hasattr(sys, '_getframe'):
 #    _srcfile = None
 
+#TODO FUTURE work
+# def _checkLevel(level, compare={'case': False, 'type': False, 'map': False}):
+    # pass
+    # # """Check parameter against defined values
+    # #
+    # # Returns corresponding or original Integer, or NOTSET if no-match.
+    # # Will raise TypeError or ValueError as applicable.
+    # #
+    # # NOTE: Since all logging.$level() functions choose to emit based on
+    # # numeric comparison, a default of ERROR would be more logical.
+    # # """
+    # try:
+        # if isinstance(level, str):
+        # WRONG! for loop with level and level.upper
+            # if not compare.get('case'):
+                # level = str.upper(level)
+            # rv = _nameToLevel.get(level)
+            # if rv is None:
+                # XXX what now?
+        # if isinstance(level, int) or not type:
+            # # flip negative values
+            # level = int(level)
+            # if level in _levelToName(level):
+                # rv = level
+            # else:
+                # # tolerate any Integer value
+                # rv = NOTSET if map else level
+        # if rv is None:
+            # level = str(level)
+        # if rv is None:
+            # if level in _levelToName or (not type and int(level) in _levelToName):
+            # rv = NOTSET if level < NOTSET else level
+            # rv = level
+        # if rv is None and map:
+            # raise ValueError
+        # else:
+            # # return parameter even though invalid
+            # rv = level
+            # sor level < NOTSET or level > ???:
+            # #raise ValueError
+            # if isinstance(level, int):
+                # XXX check >NOTSET
+            # else:
+                # raise TypeError
+        # #FIXME - test harness injects '+1',  so tolerating
+        # # arbitrary integers is expected behavior. Why?
+        # #    raise ValueError
+            # rv = int(level)
+    # except (TypeError, ValueError, KeyError) as err:
+        # if raiseExceptions:
+            # # test harness (../test/test_logging) expects 'TypeError' ONLY
+            # raise TypeError("Level not an integer or a valid string: %r" % level) from err
+    # except Exception:
+        # pass
+
+    # return NOTSET - 1 if rv is None else rv
+
+
 
 def _checkLevel(level):
+    #TODO compare={'case': False, 'type': False, 'map': False}
+    # return the match or -1 if failed. 0 is false, -1/+1 is true so can't use NOTSET
     """Check parameter against all defined values. Return NOTSET if invalid.
 
-    Since all logging.$level() functions choose to emit based on
+    TODO: Since all logging.$level() functions choose to emit based on
     numeric comparison, a default of ERROR would be more friendly.
     """
-    rv = NOTSET
     try:
+        #FIXME uset get() and check for rv is not None instead of walking map twice
         if level in _nameToLevel:
             rv = _nameToLevel[level]
         elif level in _levelToName:
             rv = level
         else:
-        #FIXME - test harness injects '+1',  so tolerating 
-        # arbitrary integers is expected behavior. Why?
-        #    raise ValueError
+            # accept datatypes that reduce to Integer and
+            # any value thereof for very lax acceptance
             rv = int(level)
+
     except (TypeError, ValueError, KeyError) as err:
         if raiseExceptions:
-            # test harness (../test/test_logging) expects 'TypeError'
-            raise TypeError("Level not an integer or a valid string: %r" % level) from err
+            # test harness (../test/test_logging) expects only 'TypeError'
+            raise TypeError("Level is not numeric or a recognized string: %r" % level) from err
     except Exception:
         pass
 
-    return rv
+    return NOTSET - 1 if rv is None else rv
 
+    
 #---------------------------------------------------------------------------
 #   Thread-related stuff
 #---------------------------------------------------------------------------
