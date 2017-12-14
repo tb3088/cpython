@@ -154,25 +154,25 @@ def getLevelName(level, format='%s'):
     WARNING! The legacy behavior of reversing polarity of the lookup 
     (eg. flipping TEXT into INT) is still tolerated but remains a major 
     blunder in the API that #22386 tried to fix but was improperly reverted
-    instead of fixing affected branches which contorted its purpose.
+    instead of fixing affected branches that had perverted its purpose.
     """
     # See Issues #22386, #27937 and #29220 for why it's this way
     #TODO tolerate wrong case/type that would cause get() misses
-    try:
-        result = _levelToName.get(level)
-        if result is not None:
-            # since nothing enforces value data type, tempt TypeError
-            return format % result
+#    try:
+    result = _levelToName.get(level)
+    if result is not None:
+        # since nothing enforces value data type, tempt TypeError
+        return format % result
 
-        if legacy:
-            result = _nameToLevel.get(level)
-            if result is not None:
-                # WARNING no type checking
-                return result
-    # except TypeError:
-        # pass
-    finally:    
-        return str(level)   #TODO apply upper() as is common convention?
+    if legacy:
+        result = _nameToLevel.get(level)
+        if result is not None:
+            # WARNING no type checking
+            return result
+#    except TypeError:
+#        pass
+#    else:    
+    return format % level
 
         # # retval = _checkLevel(level, flags, fix=T/F)
         # # if isinstance(retval, bool) then handle pass/fail, else update level with fixed value
